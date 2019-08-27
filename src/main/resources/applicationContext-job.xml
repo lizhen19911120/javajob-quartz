@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns="http://www.springframework.org/schema/beans"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+
+    <!-- 定时任务调度器 -->
+    <bean id="scheduler"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="triggers">
+            <list>
+                <ref bean="cronTrigger"/>
+                <ref bean="cronTrigger1"/>
+                <ref bean="simpleTrigger"/>
+            </list>
+        </property>
+    </bean>
+
+    <!-- 创建基于cron表达式的定时任务触发器 -->
+    <bean id="cronTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="cronJob"/>
+        </property>
+        <property name="cronExpression">
+            <value>0 41 16 ? * MON-FRI</value>
+        </property>
+    </bean>
+    <!-- 创建继承自QuartzJobBean的定时任务job，可以通过jobDataMap传入任务执行所需的参数，这种方式的job每次执行都会创建新的一个实例
+     比如以下就传入了2个参数myParam和myParam1，可以在job中获取使用-->
+    <bean name="cronJob" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass">
+            <value>job.CronJob</value>
+        </property>
+        <property name="jobDataMap" ref="jobDataMap">
+        </property>
+    </bean>
+    <bean name="jobDataMap" class="org.quartz.JobDataMap">
+        <constructor-arg>
+            <map>
+                <entry key="myParam" value="5"/>
+                <entry key="myParam1" value="10"/>
+            </map>
+        </constructor-arg>
+    </bean>
+
+    <!-- 创建基于cron表达式的定时任务触发器 -->
+    <bean id="cronTrigger1" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="cronJob1"/>
+        </property>
+        <property name="cronExpression">
+            <value>0 13 16 ? * MON-FRI</value>
+        </property>
+    </bean>
+    <!-- 创建代理某个pojo类方法的定时任务job -->
+    <bean id="cronJob1" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <bean class="service.CronService" />
+        </property>
+        <property name="targetMethod" value="run" />
+        <property name="concurrent" value="false" /><!-- 作业不并发调度 -->
+    </bean>
+
+    <!-- 简单定时任务触发器 当需要在规定的时间执行一次或在规定的时间段以一定的时间间隔重复触发执行Job时，SimpleTrigger就可以满足要求 -->
+    <bean id="simpleTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+        <property name="jobDetail" ref="enhancedJob"/>
+        <property name="startDelay" value="1000"/>
+        <property name="repeatInterval" value="3000"/>
+    </bean>
+    <!-- 将某个service放入jobDataMap，从中获取执行真正的job内容 -->
+    <bean name="enhancedJob" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass">
+            <value>job.SimJob</value>
+        </property>
+        <property name="jobDataAsMap">
+            <map>
+                <entry key="simJobService" value-ref="simJobService"/>
+            </map>
+        </property>
+    </bean>
+    <bean name="simJobService" class="service.SimJobService">
+    </bean>
+
+
+
+</beans>
